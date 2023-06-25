@@ -1,0 +1,32 @@
+name: Windows.Registry.PrintNightmare
+description: |
+   CVE-2021-34527 or Windows Print Spooler Remote Code Execution Vulnerability
+   A remote code execution vulnerability exists when the Windows Print Spooler service improperly performs privileged file operations. An attacker who successfully exploited this vulnerability could run arbitrary code with SYSTEM privileges.
+  
+   references:https://msrc.microsoft.com/update-guide/vulnerability/CVE-2021-34527
+   
+   https://nvd.nist.gov/vuln/detail/CVE-2021-34527
+
+# Can be CLIENT, CLIENT_EVENT, SERVER, SERVER_EVENT
+type: CLIENT
+
+author: Daksh Gajjar
+
+precondition: SELECT OS From info() where OS = 'windows'
+
+parameters:
+  - name: SearchRegistryGlob
+    default: \HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows NT\Printers\PointAndPrint
+    description: Use a glob to define the registry hives that will be searched.
+
+sources:
+  - query: |
+        SELECT  Name,
+                FullPath,
+                Data,
+                Sys,
+                ModTime as Modified
+        FROM glob(globs=SearchRegistryGlob, accessor='registry')
+
+        WHERE KeyType = “DWORD”
+        AND KeyName = “NoWarningNoElevationOnInstall”
