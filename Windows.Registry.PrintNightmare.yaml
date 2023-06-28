@@ -1,7 +1,7 @@
 name: Windows.Registry.PrintNightmare
 description: |
    CVE-2021-34527 or Windows Print Spooler Remote Code Execution Vulnerability
-   A remote code execution vulnerability exists when the Windows Print Spooler service improperly performs privileged file operations. An attacker who successfully exploited this vulnerability could run arbitrary code with SYSTEM privileges.
+   A remote code execution vulnerability exists when the Windows Print Spooler service improperly performs privileged file operations. An attacker who successfully exploited this vulnerability could run arbitrary code with SYSTEM privileges. An attacker could then install programs; view, change, or delete data; or create new accounts with full user rights.
   
    references:https://msrc.microsoft.com/update-guide/vulnerability/CVE-2021-34527
    
@@ -10,23 +10,28 @@ description: |
 # Can be CLIENT, CLIENT_EVENT, SERVER, SERVER_EVENT
 type: CLIENT
 
-author: Daksh Gajjar
+# author: Daksh Gajjar
 
 precondition: SELECT OS From info() where OS = 'windows'
 
 parameters:
   - name: SearchRegistryGlob
-    default: \HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows NT\Printers\PointAndPrint
-    description: Use a glob to define the registry hives that will be searched.
+    default: \HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows NT\Printers\PointAndPrint\**
+    description: Having NoWarningNoElevationOnInstall set to 1 makes your system vulnerable by design
 
 sources:
   - query: |
-        SELECT  Name,
+        SELECT  Name as KeyName,
                 FullPath,
-                Data,
+                Data.type as KeyType, 
+                Data.value as KeyValue,
                 Sys,
                 ModTime as Modified
         FROM glob(globs=SearchRegistryGlob, accessor='registry')
-
-        WHERE KeyType = “DWORD”
-        AND KeyName = “NoWarningNoElevationOnInstall”
+        
+        WHERE KeyType = "DWORD"
+        AND KeyName =~ "NoWarningNoElevationOnInstall"
+                  
+column_types:
+  - name: Modified
+    type: timestamp
